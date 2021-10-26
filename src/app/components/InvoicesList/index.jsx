@@ -1,14 +1,19 @@
 import { useApi } from "api";
 import { useEffect, useCallback, useState, useMemo } from "react";
+
 import InfiniteScroll from 'react-infinite-scroller';
+
+import { useTable } from 'react-table';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './style.css';
 import BTable from 'react-bootstrap/Table';
-import { useTable } from 'react-table';
+import Dropdown from 'react-bootstrap/Dropdown';
+import Modal from 'react-bootstrap/Modal';
+import Button from 'react-bootstrap/Button';
+
 
 const Table = ({ columns, data }) => {
-  // Use the state and functions returned from useTable to build your UI
   const { getTableProps, headerGroups, rows, prepareRow } = useTable({
     columns,
     data,
@@ -16,7 +21,7 @@ const Table = ({ columns, data }) => {
 
   return (
     <BTable bordered size="sm" {...getTableProps()}>
-      <thead class="sticky-header">
+      <thead className="sticky-header">
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map(column => (
@@ -33,8 +38,6 @@ const Table = ({ columns, data }) => {
           return (
             <tr {...row.getRowProps()}>
               {row.cells.map(cell => {
-
-                console.log('Cell', cell.getCellProps())
                 return (
                   <td {...cell.getCellProps()}>
                     {cell.render('Cell')}
@@ -48,6 +51,28 @@ const Table = ({ columns, data }) => {
     </BTable>
   )
 }
+
+const DeleteModal = ({
+  show,
+  onClose,
+  onConfirm,
+}) => (   
+  <Modal show={show} onHide={onClose} animation={false}>
+    <Modal.Header closeButton>
+      <Modal.Title>
+        Please confirm your action
+      </Modal.Title>
+    </Modal.Header>
+    <Modal.Body>
+      Do you really want to delete this invoice?
+    </Modal.Body>
+    <Modal.Footer>
+      <Button variant="danger" onClick={onConfirm}>Delete</Button>
+      <Button variant="secondary" onClick={onClose}>Cancel</Button>
+    </Modal.Footer>
+  </Modal>
+)
+
 
 const InvoicesList = () => {
   const api = useApi();
@@ -78,13 +103,27 @@ const InvoicesList = () => {
     fetchInvoices(1);
   }, [fetchInvoices]);
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+
+  const handleCloseDeleteModal = () => setShowDeleteModal(false);
+  const handleShowDeleteModal = (id) => {
+    console.log(id)
+    setShowDeleteModal(true)
+  };
+
   const columns = useMemo(
     () => [
       {
         Header: 'Id',
-        accessor: 'customer_id',
+        accessor: 'id',
       }, {
         Header: 'Customer',
+        Cell: ({ row }) => ( 
+          <span>
+            { row.original.customer.first_name } { row.original.customer.last_name }
+          </span>
+        ),
         accessor: 'customer.first_name',
       }, {
         Header: 'Address',
@@ -121,12 +160,28 @@ const InvoicesList = () => {
         accessor: 'deadline',
       },{
         Header: 'Actions',
+        Cell: ({ row }) => { 
+          return (
+            <Dropdown>
+              <Dropdown.Toggle size='sm' variant="primary" id="dropdown-basic"></Dropdown.Toggle>
+                <Dropdown.Menu>
+                  <Dropdown.Item eventKey="1">View</Dropdown.Item>
+                  <Dropdown.Item eventKey="2">Edit</Dropdown.Item>
+                  <Dropdown.Item eventKey="3" onClick={() => handleShowDeleteModal(row.original)}>Delete</Dropdown.Item>
+                </Dropdown.Menu>
+            </Dropdown>
+          )
+        }
       },
-
     ], [])
 
   return (
     <div style={{maxHeight: "100vh", overflowY: "scroll"}}>
+      <DeleteModal 
+        show={showDeleteModal}
+        onClose={handleCloseDeleteModal}
+        onConfirm={() => console.log('del')}
+      />
       <InfiniteScroll
         initialLoad={true}
         pageStart={0}
