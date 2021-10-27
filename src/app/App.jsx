@@ -1,5 +1,10 @@
 import { useApi } from "api";
-import { useEffect, useCallback, useState, useMemo } from "react";
+import { 
+  useEffect,
+  useCallback,
+  useState,
+  useMemo,
+} from "react";
 
 import InfiniteScroll from 'react-infinite-scroller';
 
@@ -11,6 +16,7 @@ import BTable from 'react-bootstrap/Table';
 import Dropdown from 'react-bootstrap/Dropdown';
 
 import DeleteInvoiceModal from './components/DeleteInvoiceModal';
+import { useToast } from './sharable/Toast';
 
 const Table = ({ columns, data }) => {
   const { getTableProps, headerGroups, rows, prepareRow } = useTable({
@@ -54,6 +60,7 @@ const Table = ({ columns, data }) => {
 
 const App = () => {
   const api = useApi();
+  const { showToast } = useToast();
   const [invoicesList, setInvoicesList] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -72,10 +79,13 @@ const App = () => {
       setTotalPages(data.pagination.total_pages);
       console.log(data);
     } catch (err) {
-      // could be a sentry call and notification for users in production;
+      showToast({
+        message: 'Something went wrong',
+        variant: 'danger',
+      })
       console.log(err);
     }
-  }, [api]);
+  }, [api, showToast]);
 
   useEffect(() => {
     fetchInvoices(1);
@@ -99,12 +109,19 @@ const App = () => {
         setInvoicesList(updatedInvoicesList);
       }
       setShowDeleteInvoiceModal(false);
+      showToast({
+        message: 'Invoice has been removed',
+        variant: 'success',
+      })
     } catch (err) {
-      // could be a sentry call and notification for users in production;
       setShowDeleteInvoiceModal(false);
+      showToast({
+        message: 'Something went wrong',
+        variant: 'danger',
+      })
       console.log(err);
     }
-  }, [api, invoicesList]);
+  }, [api, invoicesList, showToast]);
 
 
   const columns = useMemo(
@@ -162,7 +179,9 @@ const App = () => {
                 <Dropdown.Menu>
                   <Dropdown.Item eventKey="1">View</Dropdown.Item>
                   <Dropdown.Item eventKey="2">Edit</Dropdown.Item>
-                  <Dropdown.Item eventKey="3" onClick={() => handleShowDeleteInvoiceModal(row.original)}>Delete</Dropdown.Item>
+                  { !row.original.finalized && 
+                    <Dropdown.Item eventKey="3" onClick={() => handleShowDeleteInvoiceModal(row.original)}>Delete</Dropdown.Item>
+                  }
                 </Dropdown.Menu>
             </Dropdown>
           )
@@ -191,6 +210,7 @@ const App = () => {
       >
         <Table columns={columns} data={invoicesList} />
       </InfiniteScroll>
+
     </div>
   )
 }

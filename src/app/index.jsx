@@ -4,6 +4,7 @@ import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { ApiProvider } from "../api";
+import { ToastProvider } from "./sharable/Toast";
 
 const {
   REACT_APP_API_BASE_URL,
@@ -16,7 +17,9 @@ ReactDOM.render(
       url={REACT_APP_API_BASE_URL} 
       token={REACT_APP_API_TOKEN}
     >
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </ApiProvider>
   </React.StrictMode>, document.getElementById("root")
 );

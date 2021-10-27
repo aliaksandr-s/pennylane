@@ -17,7 +17,12 @@ const DeleteModal = ({
   onClose,
   onConfirm,
 }) => (   
-  <Modal show={show} onHide={onClose} animation={false}>
+  <Modal
+    show={show} 
+    onHide={onClose} 
+    animation={false} 
+    centered
+  >
     <Modal.Header closeButton>
       <Modal.Title>
         Please confirm your action
