@@ -4,7 +4,7 @@ import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { ApiProvider } from "../api";
-import { ToastProvider } from "./sharable/Toast";
+import { ToastProvider } from "./providers/Toast";
 
 const {
   REACT_APP_API_BASE_URL,

@@ -16,7 +16,7 @@ import BTable from 'react-bootstrap/Table';
 import Dropdown from 'react-bootstrap/Dropdown';
 
 import DeleteInvoiceModal from './components/DeleteInvoiceModal';
-import { useToast } from './sharable/Toast';
+import { useToast } from './providers/Toast';
 
 const Table = ({ columns, data }) => {
   const { getTableProps, headerGroups, rows, prepareRow } = useTable({
@@ -25,7 +25,7 @@ const Table = ({ columns, data }) => {
   })
 
   return (
-    <BTable bordered size="sm" {...getTableProps()}>
+    <BTable bordered hover size="sm" {...getTableProps()}>
       <thead className="sticky-header">
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
@@ -105,8 +105,7 @@ const App = () => {
       const { status } = await api.deleteInvoice({ id });
 
       if (status === 204) {
-        const updatedInvoicesList = invoicesList.filter((invoice) => invoice.id !== id);
-        setInvoicesList(updatedInvoicesList);
+        setInvoicesList(old => old.filter((invoice) => invoice.id !== id));
       }
       setShowDeleteInvoiceModal(false);
       showToast({
@@ -121,7 +120,33 @@ const App = () => {
       })
       console.log(err);
     }
-  }, [api, invoicesList, showToast]);
+  }, [api, showToast]);
+
+  const finalizeInvoice = useCallback(async ({ id }) => {
+    console.log(id)
+    try {
+      const { status } = await api.putInvoice({ id }, {
+        finalized: true,
+      });
+
+      if (status === 200) {
+        setInvoicesList(old => old.map(
+          (invoice) => invoice.id === id ? { ...invoice, finalized: true } : {...invoice}
+        ));
+      }
+
+      showToast({
+        message: 'Invoice has been finalized',
+        variant: 'success',
+      })
+    } catch (err) {
+      showToast({
+        message: 'Something went wrong',
+        variant: 'danger',
+      })
+      console.log(err);
+    }
+  }, [api, showToast]);
 
 
   const columns = useMemo(
@@ -180,14 +205,17 @@ const App = () => {
                   <Dropdown.Item eventKey="1">View</Dropdown.Item>
                   <Dropdown.Item eventKey="2">Edit</Dropdown.Item>
                   { !row.original.finalized && 
-                    <Dropdown.Item eventKey="3" onClick={() => handleShowDeleteInvoiceModal(row.original)}>Delete</Dropdown.Item>
+                    <>
+                      <Dropdown.Item eventKey="3" onClick={() => finalizeInvoice(row.original)}>Finalize</Dropdown.Item>
+                      <Dropdown.Item eventKey="4" onClick={() => handleShowDeleteInvoiceModal(row.original)}>Delete</Dropdown.Item>
+                    </>
                   }
                 </Dropdown.Menu>
             </Dropdown>
           )
         }
       },
-    ], [])
+    ], [finalizeInvoice])
 
   return (
     <div style={{maxHeight: "100vh", overflowY: "scroll"}}>
