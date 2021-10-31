@@ -1,0 +1,7 @@
+.create-invoice-modal .modal-content {
+  height: 95vh;
+}
+
+.create-invoice-modal .modal-dialog {
+  margin-bottom: 0;
+}

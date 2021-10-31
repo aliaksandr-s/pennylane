@@ -2,7 +2,7 @@
   position: absolute;
   right: 40px;
   top: 20px;
-  z-index: 100;
+  z-index: 100000;
   min-width: 100px;
   max-width: 220px;
 }

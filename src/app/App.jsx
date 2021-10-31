@@ -16,6 +16,7 @@ import BTable from 'react-bootstrap/Table';
 import Dropdown from 'react-bootstrap/Dropdown';
 
 import DeleteInvoiceModal from './components/DeleteInvoiceModal';
+import CreateInvoiceModal from './components/CreateInvoiceModal';
 import { useToast } from './providers/Toast';
 
 const Table = ({ columns, data }) => {
@@ -80,7 +81,7 @@ const App = () => {
       console.log(data);
     } catch (err) {
       showToast({
-        message: 'Something went wrong',
+        message: 'Could not get invoices list',
         variant: 'danger',
       })
       console.log(err);
@@ -122,23 +123,20 @@ const App = () => {
     }
   }, [api, showToast]);
 
-  const finalizeInvoice = useCallback(async ({ id }) => {
-    console.log(id)
+  const updateInvoice = useCallback(async ({ id }, data) => {
     try {
-      const { status } = await api.putInvoice({ id }, {
-        finalized: true,
-      });
+      const { status } = await api.putInvoice({ id } , data);
 
       if (status === 200) {
         setInvoicesList(old => old.map(
-          (invoice) => invoice.id === id ? { ...invoice, finalized: true } : {...invoice}
+          (invoice) => invoice.id === id ? { ...invoice, ...data } : {...invoice}
         ));
-      }
 
-      showToast({
-        message: 'Invoice has been finalized',
-        variant: 'success',
-      })
+        showToast({
+          message: 'Invoice has been updated',
+          variant: 'success',
+        })
+      }
     } catch (err) {
       showToast({
         message: 'Something went wrong',
@@ -148,6 +146,16 @@ const App = () => {
     }
   }, [api, showToast]);
 
+  const finalizeInvoice = useCallback((invoice) => {
+    updateInvoice(invoice, { finalized: true })
+  }, [updateInvoice])
+
+  const markAsPaid = useCallback((invoice) => {
+    updateInvoice(invoice, { paid: true })
+  }, [updateInvoice])
+
+  const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(true);
+  const handleCloseCreateInvoiceModal = () => setShowCreateInvoiceModal(false);
 
   const columns = useMemo(
     () => [
@@ -210,12 +218,16 @@ const App = () => {
                       <Dropdown.Item eventKey="4" onClick={() => handleShowDeleteInvoiceModal(row.original)}>Delete</Dropdown.Item>
                     </>
                   }
+                  {
+                    !row.original.paid &&
+                    <Dropdown.Item eventKey="5" onClick={() => markAsPaid(row.original)}>Mark as paid</Dropdown.Item>
+                  }
                 </Dropdown.Menu>
             </Dropdown>
           )
         }
       },
-    ], [finalizeInvoice])
+    ], [finalizeInvoice, markAsPaid])
 
   return (
     <div style={{maxHeight: "100vh", overflowY: "scroll"}}>
@@ -224,12 +236,18 @@ const App = () => {
         onClose={handleCloseDeleteInvoiceModal}
         onConfirm={() => deleteInvoice(selectedInvoice.id)}
       />
+      <CreateInvoiceModal 
+        show={showCreateInvoiceModal}
+        onClose={handleCloseCreateInvoiceModal}
+        onConfirm={() => console.log('confirm')}
+      />
       <InfiniteScroll
         initialLoad={true}
         pageStart={0}
         loadMore={() => fetchInvoices(currentPage + 1, totalPages)}
         hasMore={currentPage < totalPages}
         useWindow={false}
+        threshold	={150}
         loader={
           <div key="loading" className="loader">
             Loading ...
