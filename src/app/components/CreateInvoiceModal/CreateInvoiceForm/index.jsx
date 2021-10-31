@@ -47,13 +47,15 @@ const CreateInvoiceForm = ({
       customer_id: selectedCustomer.value,
       date: event.target.date.value,
       deadline: event.target.deadline.value,
-      invoice_lines: productInputs.map(productInput => ({
+      invoice_lines_attributes: productInputs.map(productInput => ({
         product_id: productInput.product.id,
         quantity: productInput.qty,
+        label: productInput.product.initialData.label,
+        unit: productInput.product.initialData.unit,
+        vat_rate: productInput.product.initialData.vat_rate,
+        price: (productInput.product.initialData.unit_price * productInput.qty).toFixed(2),
       })), 
     }
-    // I tried multiple data formats to create invoice lines alongside invoice
-    // but none of them worked for me
     createInvoice(data);
   }
 
@@ -97,6 +99,7 @@ const CreateInvoiceForm = ({
           label: `${product.label} (price: ${product.unit_price})`,
           tax: product.unit_tax,
           priceWithoutTax: product.unit_price_without_tax,
+          initialData: product,
         })),
         hasMore: data.pagination.page < data.pagination.total_pages,
         additional: {
