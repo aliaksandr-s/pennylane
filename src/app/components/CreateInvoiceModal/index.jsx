@@ -9,17 +9,17 @@ import CreateInvoiceForm from './CreateInvoiceForm';
 const propTypes = {
   show: PropTypes.bool,
   onClose: PropTypes.func.isRequired,
-  onConfirm: PropTypes.func.isRequired,
+  onCreate: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
   show: false,
 };
 
-const DeleteModal = ({
+const CreateInvoiceModal = ({
   show,
   onClose,
-  onConfirm,
+  onCreate,
 }) => (   
   <Modal
     show={show} 
@@ -35,16 +35,19 @@ const DeleteModal = ({
       </Modal.Title>
     </Modal.Header>
     <Modal.Body>
-      <CreateInvoiceForm />
+      <CreateInvoiceForm
+        onCreate={onCreate}
+        onClose={onClose}
+      />
     </Modal.Body>
     <Modal.Footer>
-      <Button variant="primary" onClick={onConfirm}>Create</Button>
+      <Button variant="primary" form='createInvoiceForm' type='submit'>Create</Button>
       <Button variant="secondary" onClick={onClose}>Cancel</Button>
     </Modal.Footer>
   </Modal>
 )
 
-DeleteModal.propTypes = propTypes;
-DeleteModal.defaultProps = defaultProps;
+CreateInvoiceModal.propTypes = propTypes;
+CreateInvoiceModal.defaultProps = defaultProps;
 
-export default DeleteModal;
+export default CreateInvoiceModal;

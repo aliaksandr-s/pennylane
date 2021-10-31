@@ -3,61 +3,18 @@ import {
   useEffect,
   useCallback,
   useState,
-  useMemo,
 } from "react";
 
 import InfiniteScroll from 'react-infinite-scroller';
 
-import { useTable } from 'react-table';
-
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './style.css';
-import BTable from 'react-bootstrap/Table';
-import Dropdown from 'react-bootstrap/Dropdown';
+import './App.css';
+import Button from 'react-bootstrap/Button';
 
 import DeleteInvoiceModal from './components/DeleteInvoiceModal';
 import CreateInvoiceModal from './components/CreateInvoiceModal';
+import InvoicesTable from './components/InvoicesTable';
 import { useToast } from './providers/Toast';
-
-const Table = ({ columns, data }) => {
-  const { getTableProps, headerGroups, rows, prepareRow } = useTable({
-    columns,
-    data,
-  })
-
-  return (
-    <BTable bordered hover size="sm" {...getTableProps()}>
-      <thead className="sticky-header">
-        {headerGroups.map(headerGroup => (
-          <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map(column => (
-              <th {...column.getHeaderProps()}>
-                {column.render('Header')}
-              </th>
-            ))}
-          </tr>
-        ))}
-      </thead>
-      <tbody>
-        {rows.map((row, i) => {
-          prepareRow(row)
-          return (
-            <tr {...row.getRowProps()}>
-              {row.cells.map(cell => {
-                return (
-                  <td {...cell.getCellProps()}>
-                    {cell.render('Cell')}
-                  </td>
-                )
-              })}
-            </tr>
-          )
-        })}
-      </tbody>
-    </BTable>
-  )
-}
-
 
 const App = () => {
   const api = useApi();
@@ -74,11 +31,15 @@ const App = () => {
         per_page: 30,
         page: nextPage,
       });
+      // console.log(data)
 
-      setInvoicesList(invoicesList => [...invoicesList, ...data.invoices]);
+      // We don't want to get duplicates when we add newly created invoice to the table and then
+      // fetch it again when we scroll. If we had sorting in the API we could do better. 
+      const getFiltered = (oldInv, newInv) => newInv.filter(inv => !oldInv.some(i => i.id === inv.id))
+
+      setInvoicesList(invoicesList => [...invoicesList, ...getFiltered(invoicesList, data.invoices)]);
       setCurrentPage(data.pagination.page);
       setTotalPages(data.pagination.total_pages);
-      console.log(data);
     } catch (err) {
       showToast({
         message: 'Could not get invoices list',
@@ -154,80 +115,11 @@ const App = () => {
     updateInvoice(invoice, { paid: true })
   }, [updateInvoice])
 
-  const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(true);
-  const handleCloseCreateInvoiceModal = () => setShowCreateInvoiceModal(false);
-
-  const columns = useMemo(
-    () => [
-      {
-        Header: 'Id',
-        accessor: 'id',
-      }, {
-        Header: 'Customer',
-        Cell: ({ row }) => ( 
-          <span>
-            { row.original.customer.first_name } { row.original.customer.last_name }
-          </span>
-        ),
-        accessor: 'customer.first_name',
-      }, {
-        Header: 'Address',
-        accessor: 'customer.address',
-      }, {
-        Header: 'Total',
-        accessor: 'total',
-      }, {
-        Header: 'Tax',
-        accessor: 'tax',
-      }, {
-        Header: 'Finalized',
-        accessor: 'finalized',
-        Cell: ({ row }) => ( 
-          <span>
-            { row.original.finalized && 'Yes' }
-            { !row.original.finalized && 'No' }
-          </span>
-        ),
-      }, {
-        Header: 'Paid',
-        accessor: 'paid',
-        Cell: ({ row }) => ( 
-          <span>
-            { row.original.paid && 'Yes' }
-            { !row.original.paid && 'No' }
-          </span>
-        )
-      }, {
-        Header: 'Date',
-        accessor: 'date',
-      }, {
-        Header: 'Deadline',
-        accessor: 'deadline',
-      },{
-        Header: 'Actions',
-        Cell: ({ row }) => { 
-          return (
-            <Dropdown>
-              <Dropdown.Toggle size='sm' variant="primary" id="dropdown-basic"></Dropdown.Toggle>
-                <Dropdown.Menu>
-                  <Dropdown.Item eventKey="1">View</Dropdown.Item>
-                  <Dropdown.Item eventKey="2">Edit</Dropdown.Item>
-                  { !row.original.finalized && 
-                    <>
-                      <Dropdown.Item eventKey="3" onClick={() => finalizeInvoice(row.original)}>Finalize</Dropdown.Item>
-                      <Dropdown.Item eventKey="4" onClick={() => handleShowDeleteInvoiceModal(row.original)}>Delete</Dropdown.Item>
-                    </>
-                  }
-                  {
-                    !row.original.paid &&
-                    <Dropdown.Item eventKey="5" onClick={() => markAsPaid(row.original)}>Mark as paid</Dropdown.Item>
-                  }
-                </Dropdown.Menu>
-            </Dropdown>
-          )
-        }
-      },
-    ], [finalizeInvoice, markAsPaid])
+  const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
+  const handleCreateInvoice = (invoice) => {
+    setInvoicesList(invoices => [invoice, ...invoices]);
+    setShowCreateInvoiceModal(false);
+  }
 
   return (
     <div style={{maxHeight: "100vh", overflowY: "scroll"}}>
@@ -238,8 +130,8 @@ const App = () => {
       />
       <CreateInvoiceModal 
         show={showCreateInvoiceModal}
-        onClose={handleCloseCreateInvoiceModal}
-        onConfirm={() => console.log('confirm')}
+        onClose={() => setShowCreateInvoiceModal(false)}
+        onCreate={handleCreateInvoice}
       />
       <InfiniteScroll
         initialLoad={true}
@@ -247,16 +139,26 @@ const App = () => {
         loadMore={() => fetchInvoices(currentPage + 1, totalPages)}
         hasMore={currentPage < totalPages}
         useWindow={false}
-        threshold	={150}
         loader={
           <div key="loading" className="loader">
             Loading ...
           </div>
         }
       >
-        <Table columns={columns} data={invoicesList} />
+        <InvoicesTable
+          data={invoicesList}
+          finalizeInvoice={finalizeInvoice}
+          handleShowDeleteInvoiceModal={handleShowDeleteInvoiceModal}
+          markAsPaid={markAsPaid}
+        />
       </InfiniteScroll>
-
+      <Button
+        className="add-button" 
+        variant='success'
+        onClick={() => setShowCreateInvoiceModal(true)}
+      >
+        +
+      </Button>
     </div>
   )
 }

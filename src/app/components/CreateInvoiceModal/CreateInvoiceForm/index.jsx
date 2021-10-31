@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useApi } from "api";
 import { useToast } from 'app/providers/Toast';
 
@@ -11,7 +11,10 @@ import Alert from 'react-bootstrap/Alert';
 
 import './style.css';
 
-const CreateInvoiceForm = () => { 
+const CreateInvoiceForm = ({
+  onCreate,
+  onClose,
+}) => { 
   const api = useApi();
   const { showToast } = useToast();
 
@@ -111,24 +114,22 @@ const CreateInvoiceForm = () => {
 
   const createInvoice = async (invoice) => {
     try {
-      const resp = await api.postInvoices(null, {
-        invoice: {
-          customer_id: 4,
-          date: "2021-02-03",
-          deadline: "2021-02-03",
-          invoice_lines: [{
-            product_id: 11,
-            quantity: 3,
-          }],
-        }
+      const { data } = await api.postInvoices(null, {
+        invoice 
       });
-      console.log(resp)
-
+      if (data) {
+        showToast({
+          message: `Invoice with id ${data.id} has been created`,
+          variant: 'success',
+        })
+      }
+      onCreate(data);
     } catch (err) {
       showToast({
         message: 'Error when creating invoice',
         variant: 'danger',
       })
+      onClose();
       console.log(err);
     }
   };
@@ -167,7 +168,7 @@ const CreateInvoiceForm = () => {
   }
 
   return ( 
-    <Form onSubmit={handleSubmit}>
+    <Form onSubmit={handleSubmit} id='createInvoiceForm'>
       <Row>
         <Col>
           <Form.Group controlId="formBasicEmail">
@@ -246,11 +247,6 @@ const CreateInvoiceForm = () => {
           <div className="font-weight-bold">Total with tax:</div>
           <div>{(countTotal(productInputs, 'priceWithoutTax') + countTotal(productInputs, 'tax')).toFixed(2)}</div>
       </div>
-      <br/>
-      <br/>
-      <Button variant="primary" type="submit">
-        Submit
-      </Button>
     </Form>
 )}
 
